@@ -1,6 +1,6 @@
-# Stock MCP (Yahoo Finance + Claude)
+# Stock MCP (Yahoo Finance + Claude/Gemini)
 
-A minimal, local MCP server for stock analysis using Yahoo Finance and Claude.
+A local Model Context Protocol (MCP) server for stock analysis using Yahoo Finance and official SDKs. This server provides tools for LLMs (like Claude or Gemini) to fetch market data, financials, and sentiment analysis directly.
 
 ---
 
@@ -12,6 +12,7 @@ A minimal, local MCP server for stock analysis using Yahoo Finance and Claude.
 * 🧠 Analyst recommendations
 * 📰 News + basic sentiment analysis
 * ⚡ AI-optimized summary output
+* 🛠️ Official MCP SDK (Compatible with Claude Desktop & Gemini CLI)
 
 ---
 
@@ -21,7 +22,7 @@ A minimal, local MCP server for stock analysis using Yahoo Finance and Claude.
 src/
   data/        # Data fetching + caching
   services/    # Analysis logic
-  mcp/         # MCP server
+  mcp/         # MCP server (Standard JSON-RPC)
 ```
 
 ---
@@ -29,42 +30,44 @@ src/
 ## ⚙️ Setup
 
 ```bash
-uv venv
-source .venv/bin/activate
-
-uv add yfinance pydantic
+# Install dependencies
+uv sync
 ```
 
 ---
 
-## ▶️ Run
+## 🤖 Usage with Gemini CLI
+
+To use this with the [Gemini CLI](https://github.com/google/gemini-cli), add it as an MCP tool:
 
 ```bash
-uv run python -m src.mcp.server
+gemini mcp add stock-analysis "uv run python -m src.mcp.server" --trust -s project
 ```
+
+Then, you can simply ask:
+* "Analyze Apple stock"
+* "How is NVIDIA performing compared to its recent history?"
 
 ---
 
-## 🧪 Example Request
+## 🤖 Usage with Claude Desktop
 
-```json
-{"tool": "analyze_stock", "args": {"symbol": "AAPL"}}
-```
-
----
-
-## 📊 Output (Example)
+Add this to your `claude_desktop_config.json`:
 
 ```json
 {
-  "symbol": "AAPL",
-  "summary": {
-    "latest_close": 277.85,
-    "price_change_percent": 2.3,
-    "trend": "up",
-    "average_volume": 50000000,
-    "volatility": 0.012,
-    "news_sentiment": "positive"
+  "mcpServers": {
+    "stock-analysis": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "/path/to/stock-mcp",
+        "python",
+        "-m",
+        "src.mcp.server"
+      ]
+    }
   }
 }
 ```
@@ -79,48 +82,14 @@ uv run python -m src.mcp.server
 
 ---
 
-## 🧠 Design Philosophy
-
-* Keep tools minimal
-* Return structured insights (not raw data)
-* Let Claude handle reasoning
-
----
-
 ## ⚠️ Limitations
 
-* Uses unofficial Yahoo Finance API
+* Uses unofficial Yahoo Finance API (`yfinance`)
 * Data may be delayed or incomplete
-* Not suitable for trading systems
-
----
-
-## 🛠️ Roadmap
-
-* [ ] Market overview tool
-* [ ] Better financial metrics (revenue, profit)
-* [ ] Technical indicators (RSI, SMA)
-* [ ] Multi-stock comparison
-
----
-
-## 🤖 Usage with Claude
-
-Ask things like:
-
-* "Analyze Apple stock"
-* "Is Tesla trending up?"
-* "What do analysts think about Nvidia?"
-
-Claude will:
-
-1. Call MCP tool
-2. Interpret structured data
-3. Provide insights
+* Not suitable for high-frequency trading
 
 ---
 
 ## 📄 License
 
 MIT
-

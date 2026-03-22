@@ -1,37 +1,20 @@
-from src.mcp.tools import analyze_stock_tool
+from mcp.server.fastmcp import FastMCP
+from src.services.stock_service import analyze_stock
 
+# Initialize FastMCP server
+mcp = FastMCP("Stock-MCP")
 
-TOOLS = {
-    "analyze_stock": analyze_stock_tool,
-}
-
-def safe_json_dumps(obj):
-    import json
-
-    def default(o):
-        if hasattr(o, "isoformat"):
-            return o.isoformat()
-        if hasattr(o, "item"):
-            return o.item()
-        return str(o)
-
-    return json.dumps(obj, default=default)
-
-def handle_request(request: dict):
-    tool = request.get("tool")
-    args = request.get("args", {})
-
-    if tool not in TOOLS:
-        return {"error": f"Unknown tool: {tool}"}
-
-    return TOOLS[tool](args)
-
+@mcp.tool()
+def analyze_stock_tool(symbol: str, period: str = "3mo") -> dict:
+    """
+    Analyze a stock symbol for price trends, financials, and sentiment.
+    
+    Args:
+        symbol: The stock ticker symbol (e.g., 'AAPL', 'TSLA').
+        period: Historical data period (e.g., '1mo', '3mo', '1y'). Defaults to '3mo'.
+    """
+    # FastMCP will automatically handle JSON serialization of the returned dict
+    return analyze_stock(symbol, period)
 
 if __name__ == "__main__":
-    import json
-    import sys
-
-    for line in sys.stdin:
-        request = json.loads(line)
-        response = handle_request(request)
-        print(safe_json_dumps(response), flush=True)
+    mcp.run()
