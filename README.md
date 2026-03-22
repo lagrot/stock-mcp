@@ -41,7 +41,7 @@ uv sync
 ### Option A: Automated (Recommended)
 Use the included test script which handles the complex MCP handshake automatically:
 ```bash
-uv run python test_mcp_client.py
+uv run python tests/test_mcp_client.py
 ```
 
 ### Option B: Manual (Raw JSON-RPC)
