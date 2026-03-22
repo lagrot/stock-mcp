@@ -1,13 +1,29 @@
 """
 Yahoo Finance API client with serialization helpers and caching.
+
+This module handles all interactions with the yfinance library and the
+local SQLite cache. It provides a clean API for fetching stock data,
+financials, and market info, with automatic caching for historical prices.
 """
 
 import datetime
-from typing import Any
+import logging
+from typing import Any, Optional
 
+import requests
 import yfinance as yf
 
 from src.data.cache import get_cached_history, init_db, save_history
+
+# Constants
+SEARCH_URL = "https://query2.finance.yahoo.com/v1/finance/search"
+DEFAULT_USER_AGENT = "Mozilla/5.0"
+CACHE_VALIDITY_DAYS = 1
+
+
+# -----------------------------------------------------------------------------
+# Serialization Helpers
+# -----------------------------------------------------------------------------
 
 
 def _serialize_value(value: Any) -> Any:
@@ -59,15 +75,28 @@ def _serialize_dict(data: dict[Any, dict[Any, Any]]) -> dict[str, dict[str, Any]
     return serialized
 
 
+# -----------------------------------------------------------------------------
+# Core wrapper
+# -----------------------------------------------------------------------------
+
+
 def get_ticker(symbol: str) -> yf.Ticker:
     """Return a yfinance Ticker object for the given symbol."""
     return yf.Ticker(symbol)
 
 
+# -----------------------------------------------------------------------------
+# Data Fetchers
+# -----------------------------------------------------------------------------
+
+
 def get_current_price(symbol: str) -> float:
-    """Fetch the latest price for a symbol (e.g., 'USDSEK=X')."""
+    """
+    Fetch the latest price for a symbol (e.g., 'USDSEK=X').
+
+    Tries 'fast_info' first, falls back to 'history' if needed.
+    """
     ticker = get_ticker(symbol)
-    # Use fast_info if available, otherwise history
     try:
         return ticker.fast_info["lastPrice"]
     except Exception:
@@ -78,7 +107,13 @@ def get_current_price(symbol: str) -> float:
 
 
 def get_market_info(symbol: str) -> dict[str, Any]:
-    """Fetch market state and last trading time for a symbol."""
+    """
+    Fetch market state and last trading time for a symbol.
+
+    Returns:
+        dict: Contains 'market_state' (OPEN/CLOSED), 'last_trade_time' (ISO),
+              and 'currency'.
+    """
     ticker = get_ticker(symbol)
     try:
         # ticker.info is more reliable than fast_info for metadata on some systems
@@ -93,7 +128,11 @@ def get_market_info(symbol: str) -> dict[str, Any]:
 
 
 def get_dividend_data(symbol: str) -> dict[str, Any]:
-    """Fetch dividend yield, rate, and history for a symbol."""
+    """
+    Fetch dividend yield, rate, and history for a symbol.
+
+    Returns empty dict if data is unavailable.
+    """
     ticker = get_ticker(symbol)
     try:
         info = ticker.info
@@ -108,33 +147,41 @@ def get_dividend_data(symbol: str) -> dict[str, Any]:
         return {}
 
 
-def get_history(symbol: str, period: str = "3mo") -> list[dict[str, Any]]:
-    """
-    Fetch historical price data with SQLite caching.
+# -----------------------------------------------------------------------------
+# Historical Data (with Caching)
+# -----------------------------------------------------------------------------
 
-    Refreshes automatically if the cached data is older than 1 day.
-    """
-    init_db()
 
-    # 1. Check local cache
+def _is_cache_fresh(last_date_str: str) -> bool:
+    """Check if the cached data is fresh enough (less than 1 day old)."""
+    try:
+        last_date = datetime.datetime.fromisoformat(last_date_str)
+        # Compare aware/naive dates safely by making 'now' aware if needed
+        now = (
+            datetime.datetime.now(last_date.tzinfo)
+            if last_date.tzinfo
+            else datetime.datetime.now()
+        )
+        return (now - last_date).days < CACHE_VALIDITY_DAYS
+    except (ValueError, TypeError):
+        return False
+
+
+def _get_history_from_cache(symbol: str) -> Optional[list[dict[str, Any]]]:
+    """Attempt to retrieve valid historical data from the local cache."""
     cached = get_cached_history(symbol)
-    if cached:
-        last_date_str = cached[-1].get("Date")
-        if last_date_str:
-            try:
-                last_date = datetime.datetime.fromisoformat(last_date_str)
-                # Compare aware/naive dates safely
-                now = (
-                    datetime.datetime.now(last_date.tzinfo)
-                    if last_date.tzinfo
-                    else datetime.datetime.now()
-                )
-                if (now - last_date).days < 1:
-                    return cached
-            except (ValueError, TypeError):
-                pass
+    if not cached:
+        return None
 
-    # 2. Fetch fresh data from Yahoo Finance
+    last_date_str = cached[-1].get("Date")
+    if last_date_str and _is_cache_fresh(last_date_str):
+        return cached
+
+    return None
+
+
+def _fetch_history_from_api(symbol: str, period: str) -> list[dict[str, Any]]:
+    """Fetch fresh historical data from Yahoo Finance."""
     ticker = get_ticker(symbol)
     df = ticker.history(period=period)
 
@@ -143,16 +190,43 @@ def get_history(symbol: str, period: str = "3mo") -> list[dict[str, Any]]:
 
     # Reset index to include 'Date' as a column, then serialize
     records = df.reset_index().to_dict(orient="records")
-    serialized_records = _serialize_records(records)
+    return _serialize_records(records)
+
+
+def get_history(symbol: str, period: str = "3mo") -> list[dict[str, Any]]:
+    """
+    Fetch historical price data with SQLite caching.
+
+    Orchestrates the cache check and API fetch. Refreshes automatically
+    if the cached data is older than 1 day.
+    """
+    init_db()
+
+    # 1. Try cache
+    cached = _get_history_from_cache(symbol)
+    if cached:
+        return cached
+
+    # 2. Fetch fresh
+    records = _fetch_history_from_api(symbol, period)
 
     # 3. Update cache
-    save_history(symbol, serialized_records)
+    save_history(symbol, records)
 
-    return serialized_records
+    return records
+
+
+# -----------------------------------------------------------------------------
+# Financials & News
+# -----------------------------------------------------------------------------
 
 
 def get_financials(symbol: str) -> dict[str, Any]:
-    """Fetch income statement and balance sheet data."""
+    """
+    Fetch income statement and balance sheet data.
+
+    Returns empty dicts if fundamentals are missing (common for indices).
+    """
     ticker = get_ticker(symbol)
 
     try:
@@ -173,14 +247,13 @@ def get_financials(symbol: str) -> dict[str, Any]:
 
 
 def get_recommendations(symbol: str) -> list[dict[str, Any]]:
-    """Fetch recent analyst recommendations."""
+    """Fetch recent analyst recommendations (last 10)."""
     ticker = get_ticker(symbol)
     recs = ticker.recommendations
 
     if recs is None or recs.empty:
         return []
 
-    # Get the 10 most recent recommendations
     records = recs.tail(10).reset_index().to_dict(orient="records")
     return _serialize_records(records)
 
@@ -193,30 +266,36 @@ def get_news(symbol: str) -> list[dict[str, Any]]:
     return [{k: _serialize_value(v) for k, v in item.items()} for item in news]
 
 
-def search_symbol(query: str) -> list[dict[str, Any]]:
-    """Search for a stock ticker by company name or query."""
-    # Use yfinance's internal search helper
-    import requests
+# -----------------------------------------------------------------------------
+# Search
+# -----------------------------------------------------------------------------
 
+
+def search_symbol(query: str) -> list[dict[str, Any]]:
+    """
+    Search for a stock ticker by company name or query.
+
+    Uses Yahoo Finance's query API directly.
+    """
     try:
-        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={query}&quotesCount=5"
+        url = f"{SEARCH_URL}?q={query}&quotesCount=5"
         res = requests.get(
-            url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10
+            url, headers={"User-Agent": DEFAULT_USER_AGENT}, timeout=10
         )
         res.raise_for_status()
         data = res.json()
-        
-        # Format the relevant results
+
         results = []
         for quote in data.get("quotes", []):
-            results.append({
-                "symbol": quote.get("symbol"),
-                "name": quote.get("shortname") or quote.get("longname"),
-                "exchange": quote.get("exchange"),
-                "type": quote.get("quoteType")
-            })
+            results.append(
+                {
+                    "symbol": quote.get("symbol"),
+                    "name": quote.get("shortname") or quote.get("longname"),
+                    "exchange": quote.get("exchange"),
+                    "type": quote.get("quoteType"),
+                }
+            )
         return results
     except Exception as e:
-        import logging
         logging.error(f"Search failed for {query}: {e}")
         return []
