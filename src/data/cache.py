@@ -1,6 +1,5 @@
 import sqlite3
 from pathlib import Path
-from typing import List, Dict
 
 DB_PATH = Path("cache.db")
 
@@ -29,7 +28,7 @@ def init_db():
 # READ
 # -------------------------
 
-def get_cached_history(symbol: str) -> List[Dict]:
+def get_cached_history(symbol: str) -> list[dict]:
     with get_conn() as conn:
         cursor = conn.execute("""
             SELECT date, open, high, low, close, volume
@@ -57,7 +56,7 @@ def get_cached_history(symbol: str) -> List[Dict]:
 # WRITE
 # -------------------------
 
-def save_history(symbol: str, records: List[Dict]):
+def save_history(symbol: str, records: list[dict]):
     with get_conn() as conn:
         for row in records:
             conn.execute("""
