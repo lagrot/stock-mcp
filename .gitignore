@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local project files
+.gemini/
+cache.db
+mcp_server.log
