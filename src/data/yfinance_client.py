@@ -99,12 +99,14 @@ def _is_cache_fresh(last_date_str: str) -> bool:
     """Check if the cached data is fresh enough (less than 1 day old)."""
     try:
         last_date = datetime.datetime.fromisoformat(last_date_str)
-        # Compare aware/naive dates safely by making 'now' aware if needed
-        now = (
-            datetime.datetime.now(last_date.tzinfo)
-            if last_date.tzinfo
-            else datetime.datetime.now()
-        )
+        # Compare aware/naive dates safely
+        if last_date.tzinfo:
+            now = datetime.datetime.now(datetime.timezone.utc)
+            # Ensure last_date is also UTC for comparison if it has tzinfo
+            last_date = last_date.astimezone(datetime.timezone.utc)
+        else:
+            now = datetime.datetime.now()
+        
         return (now - last_date).days < CACHE_VALIDITY_DAYS
     except (ValueError, TypeError):
         return False
@@ -218,10 +220,13 @@ async def search_symbol(query: str) -> list[dict[str, Any]]:
     Uses Yahoo Finance's query API directly.
     """
     try:
-        url = f"{SEARCH_URL}?q={query}&quotesCount=5"
+        params = {"q": query, "quotesCount": 5}
         async with httpx.AsyncClient() as client:
             res = await client.get(
-                url, headers={"User-Agent": DEFAULT_USER_AGENT}, timeout=10
+                SEARCH_URL,
+                params=params,
+                headers={"User-Agent": DEFAULT_USER_AGENT},
+                timeout=10
             )
             if res.status_code == 429:
                 raise RateLimitError("Rate limit exceeded for search API")
