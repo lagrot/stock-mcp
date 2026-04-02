@@ -12,6 +12,7 @@ from src.data import yfinance_client
 from src.services import stock_service
 from src.utils.exceptions import APIError, DataNotFoundError, RateLimitError
 from src.utils.logging_setup import setup_logging
+from src.utils.validation import validate_query, validate_symbol
 
 # -----------------------------------------------------------------------------
 # Server Setup
@@ -29,8 +30,11 @@ async def search_symbol_tool(query: str) -> dict[str, Any]:
     import logging
     logging.info(f"Tool call: search_symbol_tool(query={query})")
     try:
-        results = await yfinance_client.search_symbol(query)
-        return {"query": query, "results": results}
+        clean_query = validate_query(query)
+        results = await yfinance_client.search_symbol(clean_query)
+        return {"query": clean_query, "results": results}
+    except ValueError as e:
+        return {"error": str(e), "code": 400}
     except RateLimitError:
         return {"error": "Rate limit exceeded. Please try again later.", "code": 429}
     except APIError as e:
@@ -53,7 +57,10 @@ async def analyze_stock_tool(symbol: str, period: str = "3mo") -> dict[str, Any]
     import logging
     logging.info(f"Tool call: analyze_stock_tool(symbol={symbol})")
     try:
-        return await stock_service.analyze_stock(symbol, period)
+        clean_symbol = validate_symbol(symbol)
+        return await stock_service.analyze_stock(clean_symbol, period)
+    except ValueError as e:
+        return {"error": str(e), "code": 400, "symbol": symbol}
     except DataNotFoundError:
         return {"error": f"No data found for symbol: {symbol}", "code": 404, "symbol": symbol}
     except RateLimitError:

@@ -60,6 +60,10 @@ async def test_is_cache_fresh():
     stale_date = (datetime.datetime.now() - datetime.timedelta(days=2)).isoformat()
     assert yfinance_client._is_cache_fresh(stale_date) is False
 
+    # Timezone-aware fresh date
+    aware_fresh = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=12)).isoformat()
+    assert yfinance_client._is_cache_fresh(aware_fresh) is True
+
 @pytest.mark.asyncio
 async def test_get_history_cache_hit():
     symbol = "AAPL"
