@@ -43,7 +43,7 @@ async def run_test():
         print("\n--- Testing Stock Analysis (NEWA-B.ST) ---")
         await send({
             "jsonrpc": "2.0", "id": 2, "method": "tools/call",
-            "params": {"name": "analyze_stock_tool", "arguments": {"symbol": "NEWA-B.ST"}}
+            "params": {"name": "yahoo_finance_analyze_stock", "arguments": {"symbol": "NEWA-B.ST"}}
         })
         
         res = await receive()

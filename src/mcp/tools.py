@@ -1,7 +1,7 @@
 from src.services.stock_service import analyze_stock
 
 
-def analyze_stock_tool(args: dict):
+def yahoo_finance_analyze_stock(args: dict):
     symbol = args.get("symbol")
     period = args.get("period", "3mo")
 

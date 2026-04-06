@@ -6,8 +6,11 @@ import contextlib
 import logging
 import os
 import sys
+from pathlib import Path
 
-LOG_FILE = "mcp_server.log"
+# Get the project root relative to this file's location
+PROJECT_ROOT = Path(__file__).parent.parent.parent.absolute()
+LOG_FILE = PROJECT_ROOT / "mcp_server.log"
 
 
 def setup_logging(debug: bool = False):
@@ -34,9 +37,16 @@ def setup_logging(debug: bool = False):
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
     
-    # Avoid adding duplicate handlers if setup_logging is called multiple times
-    if not root_logger.handlers:
-        root_logger.addHandler(file_handler)
-        root_logger.addHandler(stream_handler)
+    # Forcefully clear existing handlers to ensure our configuration takes precedence
+    if root_logger.handlers:
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
+
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(stream_handler)
+
+    # Ensure everything is flushed immediately
+    for handler in root_logger.handlers:
+        handler.flush()
 
     logging.info("MCP Server starting...")

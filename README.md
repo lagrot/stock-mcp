@@ -36,6 +36,24 @@ uv sync
 
 ---
 
+## 🛠️ Tech Stack
+- **Language:** Python 3.12+
+- **Environment:** [uv](https://github.com/astral-sh/uv)
+- **Data Source:** `yfinance`
+- **Caching:** `sqlite3`
+- **MCP Framework:** `FastMCP` (via official `mcp` Python SDK)
+
+---
+
+## ⚙️ Setup
+
+```bash
+# Install dependencies
+uv sync
+```
+
+---
+
 ## 🧪 Standalone Testing (WSL / Linux)
 
 ### Option A: Automated (Recommended)
@@ -62,7 +80,7 @@ Then, paste these **three messages** in order:
 
 **3. Call the Tool**
 ```json
-{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"analyze_stock_tool","arguments":{"symbol":"AAPL"}}}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"yahoo_finance_analyze_stock","arguments":{"symbol":"AAPL"}}}
 ```
 
 ---
@@ -74,14 +92,14 @@ To use this with the [Gemini CLI](https://github.com/google/gemini-cli), registe
 Run this command from your terminal, replacing `<PROJECT_PATH>` with the absolute path where you cloned this repository:
 
 ```bash
-gemini mcp add stock-analysis uv --project <PROJECT_PATH> run env PYTHONPATH=<PROJECT_PATH> python <PROJECT_PATH>/src/mcp/server.py
+gemini mcp add mcp-yahoo-stock uv -- --project <PATH_TO_PROJECT> run env PYTHONPATH=<PATH_TO_PROJECT> python -m src.mcp.server
 ```
 
 *Note: Replace `<PROJECT_PATH>` with your full path (e.g., `/home/username/git/stock-mcp`).*
 
 Once registered, you can use the analysis tools from any directory:
 ```bash
-gemini tool call stock-analysis:analyze_stock_tool '{"symbol": "AAPL", "period": "1mo"}'
+gemini tool call mcp-yahoo-stock:yahoo_finance_analyze_stock '{"symbol": "AAPL", "period": "1mo"}'
 ```
 
 ---

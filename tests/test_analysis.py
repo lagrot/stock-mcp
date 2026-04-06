@@ -41,9 +41,8 @@ async def test_analyze_stock_tool():
         # Call Tool
         await send({
             "jsonrpc": "2.0", "id": 2, "method": "tools/call",
-            "params": {"name": "analyze_stock_tool", "arguments": {"symbol": "AAPL"}}
+            "params": {"name": "yahoo_finance_analyze_stock", "arguments": {"symbol": "AAPL"}}
         })
-        
         res = await receive()
         
         assert "result" in res

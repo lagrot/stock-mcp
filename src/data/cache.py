@@ -1,7 +1,9 @@
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path("cache.db")
+# Get project root relative to this file
+PROJECT_ROOT = Path(__file__).parent.parent.parent.absolute()
+DB_PATH = PROJECT_ROOT / "cache.db"
 
 
 def get_conn():

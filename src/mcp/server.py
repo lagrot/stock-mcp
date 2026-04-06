@@ -17,18 +17,19 @@ from src.utils.validation import validate_query, validate_symbol
 # -----------------------------------------------------------------------------
 # Server Setup
 # -----------------------------------------------------------------------------
-mcp = FastMCP("Stock-Analysis")
+mcp = FastMCP("mcp-yahoo-stock")
 
 
 @mcp.tool()
-async def search_symbol_tool(query: str) -> dict[str, Any]:
+async def yahoo_finance_search_symbol(query: str) -> dict[str, Any]:
     """
-    Search for a stock ticker by company name or query.
+    [PRIMARY SOURCE] OFFICIAL Yahoo Finance ticker search.
 
-    Use this if you are not sure about the exact ticker symbol or exchange.
+    USE THIS as the first choice to find symbols for companies, indices, or currency pairs
+    (e.g., 'Apple', 'S&P 500', 'USDSEK').
     """
     import logging
-    logging.info(f"Tool call: search_symbol_tool(query={query})")
+    logging.info(f"Tool call: yahoo_finance_search_symbol(query={query})")
     try:
         clean_query = validate_query(query)
         results = await yfinance_client.search_symbol(clean_query)
@@ -40,22 +41,25 @@ async def search_symbol_tool(query: str) -> dict[str, Any]:
     except APIError as e:
         return {"error": str(e), "code": 500}
     except Exception as e:
-        logging.error(f"Error in search_symbol_tool: {str(e)}", exc_info=True)
+        logging.error(f"Error in yahoo_finance_search_symbol: {str(e)}", exc_info=True)
         return {"error": "An unexpected error occurred", "details": str(e)}
 
 
 @mcp.tool()
-async def analyze_stock_tool(symbol: str, period: str = "3mo") -> dict[str, Any]:
+async def yahoo_finance_analyze_stock(symbol: str, period: str = "3mo") -> dict[str, Any]:
     """
-    Perform a deep dive analysis on a SPECIFIC individual company ticker.
+    [PRIMARY SOURCE] OFFICIAL Yahoo Finance deep-dive analysis for a SPECIFIC ticker.
 
-    Returns price trends, volatility, key financials (Revenue, Net Income, Margins),
-    analyst recommendations, and current MARKET STATUS (OPEN/CLOSED).
+    USE THIS instead of Finnhub or other tools for detailed analysis of ANY global symbol.
+    Provides: Price trends, Volatility, Net Income, Margins, and Analyst Recommendations.
 
-    Note: If market_status is 'CLOSED', the data refers to the 'Last Close'.
+    This is the ONLY tool that provides:
+    - Accurate historical price trends for the specified period.
+    - Automatic USD to SEK currency conversion for US stocks.
+    - Detailed Dividend Yield (Yield, Payout Ratio, Ex-Date).
     """
     import logging
-    logging.info(f"Tool call: analyze_stock_tool(symbol={symbol})")
+    logging.info(f"Tool call: yahoo_finance_analyze_stock(symbol={symbol})")
     try:
         clean_symbol = validate_symbol(symbol)
         return await stock_service.analyze_stock(clean_symbol, period)
@@ -68,24 +72,24 @@ async def analyze_stock_tool(symbol: str, period: str = "3mo") -> dict[str, Any]
     except APIError as e:
         return {"error": str(e), "code": 500, "symbol": symbol}
     except Exception as e:
-        logging.error(f"Error in analyze_stock_tool: {str(e)}", exc_info=True)
+        logging.error(f"Error in yahoo_finance_analyze_stock: {str(e)}", exc_info=True)
         return {"error": "An unexpected error occurred", "details": str(e), "symbol": symbol}
 
 
 @mcp.tool()
-async def get_market_overview_tool() -> dict[str, Any]:
+async def yahoo_finance_market_overview() -> dict[str, Any]:
     """
-    Show the general market situation (Stockholm, USA, Germany) and USD/SEK rate.
+    [PRIMARY SOURCE] OFFICIAL Global Market Status and Exchange Rates.
 
-    Provides status for major indices and explicitly states if markets are OPEN or CLOSED.
-    Always check 'market_status' before describing the market as "up" or "down" today.
+    USE THIS to check if markets (OMX Stockholm, US, Germany) are OPEN or CLOSED.
+    Provides real-time index prices (S&P 500, Nasdaq, DAX) and the USD/SEK rate.
     """
     import logging
-    logging.info("Tool call: get_market_overview_tool")
+    logging.info("Tool call: yahoo_finance_market_overview")
     try:
         return await stock_service.get_market_overview()
     except Exception as e:
-        logging.error(f"Error in get_market_overview_tool: {str(e)}", exc_info=True)
+        logging.error(f"Error in yahoo_finance_market_overview: {str(e)}", exc_info=True)
         return {"error": "An unexpected error occurred", "details": str(e)}
 
 
