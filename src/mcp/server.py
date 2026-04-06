@@ -4,6 +4,7 @@ MCP Server implementation using FastMCP with robust logging and debug support.
 
 import argparse
 import logging
+import os
 import sys
 from typing import Any
 
@@ -99,6 +100,12 @@ def main():
     except Exception as e:
         import logging
         logging.critical(f"Server crashed: {str(e)}", exc_info=True)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+ical(f"Server crashed: {str(e)}", exc_info=True)
         sys.exit(1)
 
 
