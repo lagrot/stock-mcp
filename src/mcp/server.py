@@ -68,19 +68,32 @@ async def yahoo_finance_analyze_stock(symbol: str, period: str = "3mo") -> dict[
 
 
 @mcp.tool()
-async def yahoo_finance_market_overview() -> dict[str, Any]:
+async def yahoo_finance_lookup_and_analyze(query: str, period: str = "3mo") -> dict[str, Any]:
     """
-    [PRIMARY SOURCE] OFFICIAL Global Market Status and Exchange Rates.
+    [PRIMARY SOURCE] SMART Lookup and deep-dive analysis.
 
-    USE THIS to check if markets (OMX Stockholm, US, Germany) are OPEN or CLOSED.
-    Provides real-time index prices (S&P 500, Nasdaq, DAX) and the USD/SEK rate.
+    Use this if you know the company name but are unsure of the ticker symbol.
+    It automatically finds the best matching symbol and performs a deep analysis.
     """
-    logger.info("Tool call: yahoo_finance_market_overview")
-    try:
-        return await stock_service.get_market_overview()
-    except Exception as e:
-        logger.error(f"Error in yahoo_finance_market_overview: {str(e)}", exc_info=True)
-        return {"error": "An unexpected error occurred", "details": str(e)}
+    with tracer.start_as_current_span("lookup_and_analyze") as span:
+        span.set_attribute("query", query)
+        logger.info(f"Tool call: yahoo_finance_lookup_and_analyze(query={query})")
+        try:
+            # 1. Search for the best match
+            results = await yfinance_client.search_symbol(query)
+            if not results:
+                return {"error": f"No ticker found for '{query}'"}
+            
+            # 2. Pick the top result
+            symbol = results[0]["symbol"]
+            span.set_attribute("symbol", symbol)
+            logger.info(f"Found ticker {symbol} for query '{query}'")
+            
+            # 3. Analyze
+            return await stock_service.analyze_stock(symbol, period)
+        except Exception as e:
+            logger.error(f"Error in yahoo_finance_lookup_and_analyze: {str(e)}", exc_info=True)
+            return {"error": "An unexpected error occurred during lookup", "details": str(e)}
 
 
 # -----------------------------------------------------------------------------
