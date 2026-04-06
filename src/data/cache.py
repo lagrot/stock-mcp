@@ -6,11 +6,11 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent.absolute()
 DB_PATH = PROJECT_ROOT / "cache.db"
 
 
-def get_conn():
+def get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_PATH)
 
 
-def init_db():
+def init_db() -> None:
     with get_conn() as conn:
         conn.execute("""
         CREATE TABLE IF NOT EXISTS price_history (
@@ -30,14 +30,18 @@ def init_db():
 # READ
 # -------------------------
 
+
 def get_cached_history(symbol: str) -> list[dict]:
     with get_conn() as conn:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             SELECT date, open, high, low, close, volume
             FROM price_history
             WHERE symbol = ?
             ORDER BY date ASC
-        """, (symbol,))
+        """,
+            (symbol,),
+        )
 
         rows = cursor.fetchall()
 
@@ -58,19 +62,23 @@ def get_cached_history(symbol: str) -> list[dict]:
 # WRITE
 # -------------------------
 
-def save_history(symbol: str, records: list[dict]):
+
+def save_history(symbol: str, records: list[dict]) -> None:
     with get_conn() as conn:
         for row in records:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT OR REPLACE INTO price_history
                 (symbol, date, open, high, low, close, volume)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                symbol,
-                row["Date"],
-                row.get("Open"),
-                row.get("High"),
-                row.get("Low"),
-                row.get("Close"),
-                row.get("Volume"),
-            ))
+            """,
+                (
+                    symbol,
+                    row["Date"],
+                    row.get("Open"),
+                    row.get("High"),
+                    row.get("Low"),
+                    row.get("Close"),
+                    row.get("Volume"),
+                ),
+            )

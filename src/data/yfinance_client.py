@@ -8,7 +8,6 @@ financials, and market info, with automatic caching for historical prices.
 
 import asyncio
 import datetime
-import logging
 from typing import Any
 
 import httpx
@@ -106,7 +105,7 @@ def _is_cache_fresh(last_date_str: str) -> bool:
             last_date = last_date.astimezone(datetime.timezone.utc)
         else:
             now = datetime.datetime.now()
-        
+
         return (now - last_date).days < CACHE_VALIDITY_DAYS
     except (ValueError, TypeError):
         return False
@@ -131,7 +130,7 @@ async def _fetch_history_from_api(symbol: str, period: str) -> list[dict[str, An
     try:
         df = await asyncio.to_thread(ticker.history, period=period)
     except Exception as e:
-        raise APIError(f"Failed to fetch data from Yahoo Finance: {e}")
+        raise APIError(f"Failed to fetch data from Yahoo Finance: {e}") from e
 
     if df.empty:
         raise DataNotFoundError(f"No historical data available for symbol: {symbol}")
@@ -223,10 +222,7 @@ async def search_symbol(query: str) -> list[dict[str, Any]]:
         params = {"q": query, "quotesCount": 5}
         async with httpx.AsyncClient() as client:
             res = await client.get(
-                SEARCH_URL,
-                params=params,
-                headers={"User-Agent": DEFAULT_USER_AGENT},
-                timeout=10
+                SEARCH_URL, params=params, headers={"User-Agent": DEFAULT_USER_AGENT}, timeout=10
             )
             if res.status_code == 429:
                 raise RateLimitError("Rate limit exceeded for search API")
@@ -247,5 +243,4 @@ async def search_symbol(query: str) -> list[dict[str, Any]]:
     except RateLimitError:
         raise
     except Exception as e:
-        raise APIError(f"Search failed for {query}: {e}")
-
+        raise APIError(f"Search failed for {query}: {e}") from e

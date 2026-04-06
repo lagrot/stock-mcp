@@ -12,7 +12,6 @@ from mcp.server.fastmcp import FastMCP
 
 from src.data import yfinance_client
 from src.services import stock_service
-from src.utils.exceptions import APIError, DataNotFoundError, RateLimitError
 from src.utils.logging_setup import setup_logging
 from src.utils.tracing import tracer
 from src.utils.validation import validate_query, validate_symbol
@@ -83,12 +82,12 @@ async def yahoo_finance_lookup_and_analyze(query: str, period: str = "3mo") -> d
             results = await yfinance_client.search_symbol(query)
             if not results:
                 return {"error": f"No ticker found for '{query}'"}
-            
+
             # 2. Pick the top result
             symbol = results[0]["symbol"]
             span.set_attribute("symbol", symbol)
             logger.info(f"Found ticker {symbol} for query '{query}'")
-            
+
             # 3. Analyze
             return await stock_service.analyze_stock(symbol, period)
         except Exception as e:

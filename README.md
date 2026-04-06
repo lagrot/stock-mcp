@@ -45,42 +45,12 @@ uv sync
 
 ---
 
-## ⚙️ Setup
-
-```bash
-# Install dependencies
-uv sync
-```
-
----
-
 ## 🧪 Standalone Testing (WSL / Linux)
 
 ### Option A: Automated (Recommended)
 Use the included test script which handles the complex MCP handshake automatically:
 ```bash
 uv run python tests/test_mcp_client.py
-```
-
-### Option B: Manual (Raw JSON-RPC)
-Since we use the official protocol, you must perform a "handshake" before calling tools. Run the server:
-`uv run python -m src.mcp.server`
-
-Then, paste these **three messages** in order:
-
-**1. Initialize (The Handshake)**
-```json
-{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}
-```
-
-**2. Initialized Notification**
-```json
-{"jsonrpc":"2.0","method":"notifications/initialized"}
-```
-
-**3. Call the Tool**
-```json
-{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"yahoo_finance_analyze_stock","arguments":{"symbol":"AAPL"}}}
 ```
 
 ---
@@ -132,6 +102,30 @@ Add this to your `claude_desktop_config.json`:
 
 * **SQLite:** This project uses a local SQLite database (`cache.db`) for caching. You **do not** need to install SQLite on your system manually; it is included in the Python standard library.
 * **Logic:** Caches historical prices only and refreshes data older than 1 day.
+
+---
+
+## 🐳 Running with Docker
+
+This project is containerized for production deployment.
+
+### Building the Docker Image
+From the project root directory, run:
+```bash
+podman build -t mcp-yahoo-stock .
+```
+
+### Running the Docker Container
+To run the server in a container:
+```bash
+podman run --rm -i --network host mcp-yahoo-stock:latest python -m src.mcp.server
+```
+
+### Registering with Gemini CLI (from Docker)
+Register the server using the `podman` command:
+```bash
+gemini mcp add mcp-yahoo-stock podman run --rm -i --network host mcp-yahoo-stock:latest python -m src.mcp.server
+```
 
 ---
 

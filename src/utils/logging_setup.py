@@ -2,9 +2,7 @@
 Centralized logging configuration.
 """
 
-import contextlib
 import logging
-import os
 import sys
 from pathlib import Path
 
@@ -21,9 +19,9 @@ def setup_logging(debug: bool = False):
         level=level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[logging.StreamHandler(sys.stderr)],
-        force=True
+        force=True,
     )
-    
+
     # Silence extremely noisy libraries
     logging.getLogger("yfinance").setLevel(logging.INFO)
     logging.getLogger("httpx").setLevel(logging.WARNING)
