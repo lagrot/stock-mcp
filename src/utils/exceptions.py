@@ -1,5 +1,5 @@
 """
-Custom exceptions for the stock-mcp project.
+Custom exceptions for the mcp-yahoo-stock project.
 """
 
 class StockMCPError(Exception):

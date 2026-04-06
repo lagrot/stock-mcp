@@ -95,7 +95,7 @@ Run this command from your terminal, replacing `<PROJECT_PATH>` with the absolut
 gemini mcp add mcp-yahoo-stock uv -- --project <PATH_TO_PROJECT> run env PYTHONPATH=<PATH_TO_PROJECT> python -m src.mcp.server
 ```
 
-*Note: Replace `<PROJECT_PATH>` with your full path (e.g., `/home/username/git/stock-mcp`).*
+*Note: Replace `<PROJECT_PATH>` with your full path (e.g., `/home/username/git/mcp-yahoo-stock`).*
 
 Once registered, you can use the analysis tools from any directory:
 ```bash
@@ -111,12 +111,12 @@ Add this to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "stock-analysis": {
+    "mcp-yahoo-stock": {
       "command": "uv",
       "args": [
         "run",
         "--project",
-        "/path/to/stock-mcp",
+        "/path/to/mcp-yahoo-stock",
         "python",
         "-m",
         "src.mcp.server"
@@ -164,16 +164,16 @@ To enable more verbose logging, update your MCP configuration to include the `--
 
 **Gemini CLI:**
 ```bash
-gemini mcp add stock-analysis "uv run python -m src.mcp.server --debug" --trust -s project
+gemini mcp add mcp-yahoo-stock "uv run python -m src.mcp.server --debug" --trust -s project
 ```
 
 **Claude Desktop:**
 ```json
 {
   "mcpServers": {
-    "stock-analysis": {
+    "mcp-yahoo-stock": {
       "command": "uv",
-      "args": ["run", "--project", "/path/to/stock-mcp", "python", "-m", "src.mcp.server", "--debug"]
+      "args": ["run", "--project", "/path/to/mcp-yahoo-stock", "python", "-m", "src.mcp.server", "--debug"]
     }
   }
 }
