@@ -17,16 +17,11 @@ def setup_logging(debug: bool = False):
     """Set up logging to both file and stderr."""
     level = logging.DEBUG if debug else logging.INFO
 
-    # Remove existing log file if it exists to start fresh
-    if os.path.exists(LOG_FILE):
-        with contextlib.suppress(OSError):
-            os.remove(LOG_FILE)
-
     # Create formatters and handlers
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-    # File handler
-    file_handler = logging.FileHandler(LOG_FILE)
+    # File handler (Append mode 'a' is critical for seeing history)
+    file_handler = logging.FileHandler(LOG_FILE, mode='a', encoding='utf-8')
     file_handler.setFormatter(formatter)
 
     # Stream handler (logging to stderr is safe for MCP)
@@ -45,8 +40,8 @@ def setup_logging(debug: bool = False):
     root_logger.addHandler(file_handler)
     root_logger.addHandler(stream_handler)
 
-    # Ensure everything is flushed immediately
+    # Ensure everything is flushed immediately during setup
     for handler in root_logger.handlers:
         handler.flush()
 
-    logging.info("MCP Server starting...")
+    logging.info("--- MCP Server Session Started ---")
