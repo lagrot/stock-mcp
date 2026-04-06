@@ -152,10 +152,13 @@ uv run ruff format .
 
 ## 🩺 Troubleshooting & Logging
 
-This server logs all activity to `mcp_server.log` in the project root. This is the best place to check if the server is failing to connect to your LLM.
+This server logs all activity to `stderr`. This is the industry standard for production MCP servers, as it allows the host environment (Gemini CLI or Claude Desktop) to capture and manage your logs automatically.
 
 ### Checking logs in real-time (WSL/Linux):
+If you are running the server manually for debugging, pipe the output to a file:
 ```bash
+uv run python -m src.mcp.server --debug 2> mcp_server.log
+# Then view it in a separate terminal:
 tail -f mcp_server.log
 ```
 
@@ -164,7 +167,7 @@ To enable more verbose logging, update your MCP configuration to include the `--
 
 **Gemini CLI:**
 ```bash
-gemini mcp add mcp-yahoo-stock "uv run python -m src.mcp.server --debug" --trust -s project
+gemini mcp add mcp-yahoo-stock "uv -- --project <PATH_TO_PROJECT> run env PYTHONPATH=<PATH_TO_PROJECT> python -m src.mcp.server --debug" --trust -s project
 ```
 
 **Claude Desktop:**
