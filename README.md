@@ -194,4 +194,4 @@ gemini mcp add mcp-yahoo-stock "uv -- --project <PATH_TO_PROJECT> run env PYTHON
 
 ## 📄 License
 
-MIT
+This project is licensed under the GPL-3.0 License. See the [LICENSE](LICENSE) file for details.
