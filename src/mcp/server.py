@@ -11,7 +11,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from src.data import yfinance_client
-from src.services import stock_service
+from src.services import stock_service, delayed_price_service
 from src.utils.logging_setup import setup_logging
 from src.utils.tracing import tracer
 from src.utils.validation import validate_query, validate_symbol
@@ -21,6 +21,22 @@ from src.utils.validation import validate_query, validate_symbol
 # -----------------------------------------------------------------------------
 logger = logging.getLogger("mcp-yahoo-stock")
 mcp = FastMCP("mcp-yahoo-stock")
+
+
+@mcp.tool()
+async def yahoo_finance_get_delayed_prices() -> dict[str, Any]:
+    """
+    [LOCAL DATA] Get 15-minute delayed stock prices from local database.
+
+    Returns the latest available prices and percentage changes for tracked tickers.
+    """
+    logger.info("Tool call: yahoo_finance_get_delayed_prices")
+    try:
+        prices = delayed_price_service.get_latest_delayed_prices()
+        return {"delayed_prices": prices}
+    except Exception as e:
+        logger.error(f"Error in yahoo_finance_get_delayed_prices: {str(e)}", exc_info=True)
+        return {"error": "An unexpected error occurred", "details": str(e)}
 
 
 @mcp.tool()
