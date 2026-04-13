@@ -24,15 +24,16 @@ mcp = FastMCP("mcp-yahoo-stock")
 
 
 @mcp.tool()
-async def yahoo_finance_get_delayed_prices() -> dict[str, Any]:
+async def yahoo_finance_get_delayed_prices(ticker: str | None = None) -> dict[str, Any]:
     """
     [LOCAL DATA] Get 15-minute delayed stock prices from local database.
 
     Returns the latest available prices and percentage changes for tracked tickers.
+    Optionally filter by a specific ticker (e.g., 'ABB B').
     """
-    logger.info("Tool call: yahoo_finance_get_delayed_prices")
+    logger.info(f"Tool call: yahoo_finance_get_delayed_prices(ticker={ticker})")
     try:
-        prices = delayed_price_service.get_latest_delayed_prices()
+        prices = delayed_price_service.get_latest_delayed_prices(ticker=ticker)
         return {"delayed_prices": prices}
     except Exception as e:
         logger.error(f"Error in yahoo_finance_get_delayed_prices: {str(e)}", exc_info=True)
